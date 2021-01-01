@@ -118,14 +118,13 @@ module Game_state = struct
       in
       let presentation_stages =
         List.map (Category_id.Set.to_list game_info.categories) ~f:(fun category ->
-          Results_presentation_stage.Category category)
+            Results_presentation_stage.Category category)
         @ [ Total_scores ]
       in
       t.status
         <- Finished
              { scores
-             ; presentation_stages =
-                 (List_zipper.create presentation_stages)
+             ; presentation_stages = List_zipper.create presentation_stages
              ; words
              ; game_info
              ; disallowed_words

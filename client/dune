@@ -1,6 +1,6 @@
 (executable 
   (name client)
   (libraries core_kernel bonsai bonsai.web virtual_dom scattegories_common)
-  (preprocess (pps ppx_jane ppx_inline_test ppx_expect ppx_pattern_bind))
+  (preprocess (pps ppx_jane ppx_inline_test ppx_expect ppx_pattern_bind js_of_ocaml-ppx))
   (modes js)
   )

@@ -17,7 +17,7 @@ end
 module Player_id : Identifiable = String
 module Game_id : Identifiable = String
 
-module Game_info = struct
+module Round_params = struct
   type t =
     { id : Game_id.t
     ; letter : char
@@ -47,7 +47,7 @@ module Player_and_category = struct
   include Comparable.Make (T)
 end
 
-module Game_results = struct
+module Round_results = struct
   type submission =
     { word : Word.t option
     ; status : Word_status.t
@@ -143,51 +143,51 @@ end
 
 module List_zipper = struct
   type 'a focus =
-    Before_start
-  | In_list of { focus : 'a; prev_rev : 'a list }
-                 [@@deriving sexp, bin_io, compare]
-
+    | Before_start
+    | In_list of
+        { focus : 'a
+        ; prev_rev : 'a list
+        }
+  [@@deriving sexp, bin_io, compare]
 
   type 'a t =
-    { focus :  'a focus
+    { focus : 'a focus
     ; rest : 'a list
     }
-
-      [@@deriving sexp, bin_io, compare]
+  [@@deriving sexp, bin_io, compare]
 
   let focused_elt t =
     match t.focus with
     | Before_start -> None
-    | In_list {focus; prev_rev =_}->Some focus
+    | In_list { focus; prev_rev = _ } -> Some focus
+  ;;
 
-  let create  list =
-    { focus = Before_start; rest = list}
+  let create list = { focus = Before_start; rest = list }
 
   let next t =
-    (match t.rest with
-     | [] -> t
-     | new_focus :: rest ->
-        let prev_rev = 
-          match t.focus with
-          | Before_start ->  []
-          | In_list { focus = old_focus; prev_rev } -> old_focus :: prev_rev
-        in
-        { rest;
-          focus = In_list { focus = new_focus; prev_rev }
-        })
+    match t.rest with
+    | [] -> t
+    | new_focus :: rest ->
+      let prev_rev =
+        match t.focus with
+        | Before_start -> []
+        | In_list { focus = old_focus; prev_rev } -> old_focus :: prev_rev
+      in
+      { rest; focus = In_list { focus = new_focus; prev_rev } }
+  ;;
 
   let prev t =
     match t.focus with
     | Before_start -> t
     | In_list { focus = old_focus; prev_rev } ->
-       let rest = old_focus :: t.rest in
-       let focus =
-         match prev_rev with
-         | [] -> Before_start
-         | new_focus :: rest ->
-            In_list { focus = new_focus; prev_rev = rest }
-       in
-       { rest; focus }
+      let rest = old_focus :: t.rest in
+      let focus =
+        match prev_rev with
+        | [] -> Before_start
+        | new_focus :: rest -> In_list { focus = new_focus; prev_rev = rest }
+      in
+      { rest; focus }
+  ;;
 end
 
 module Results_presentation_stage = struct
@@ -205,13 +205,13 @@ module Game_status = struct
         }
     | In_play of
         { time_remaining : Time_ns.Stable.Span.V2.t
-        ; game_info : Game_info.t
+        ; round_params : Round_params.t
         }
     | Game_finished of
-        { scores : Game_results.t
+        { scores : Round_results.t
         ; running_totals : int Player_id.Map.t
         ; presentation_stage : Results_presentation_stage.t option
-        ; game_info : Game_info.t
+        ; round_params : Round_params.t
         }
   [@@deriving sexp, bin_io, compare]
 
@@ -239,37 +239,6 @@ module Rpc_protocol = struct
     ;;
   end
 
-  module Start_round = struct
-    type query =
-      { game_id : Game_id.t
-      ; game_info : Game_info.t
-      }
-    [@@deriving sexp, bin_io, compare]
-
-    type response = unit [@@deriving sexp, bin_io, compare]
-
-    let rpc =
-      Rpc.Rpc.create
-        ~name:"start-round"
-        ~version:1
-        ~bin_query:[%bin_type_class: query]
-        ~bin_response:[%bin_type_class: response]
-    ;;
-  end
-
-  module Next_round = struct
-    type query = { game_id : Game_id.t } [@@deriving sexp, bin_io, compare]
-    type response = unit Or_error.t [@@deriving sexp, bin_io, compare]
-
-    let rpc =
-      Rpc.Rpc.create
-        ~name:"next-round"
-        ~version:1
-        ~bin_query:[%bin_type_class: query]
-        ~bin_response:[%bin_type_class: response]
-    ;;
-  end
-
   module Submit_words = struct
     type query =
       { game_id : Game_id.t
@@ -289,33 +258,30 @@ module Rpc_protocol = struct
     ;;
   end
 
-  module Advance_results_presentation = struct
-    type query = { game_id : Game_id.t; direction : [ `Forward | `Back] } [@@deriving sexp, bin_io, compare]
-    type response = unit Or_error.t [@@deriving sexp, bin_io, compare]
-
-    let rpc =
-      Rpc.Rpc.create
-        ~name:"advance-results-presentation-stage"
-        ~version:1
-        ~bin_query:[%bin_type_class: query]
-        ~bin_response:[%bin_type_class: response]
-    ;;
-  end
-
-  module Set_word_status = struct
+  module Control_game = struct
     type query =
-      { game_id : Game_id.t
-      ; player : Player_id.t
-      ; category : Category_id.t
-      ; status : Word_status.t
-      }
+      | Start_round of
+          { game_id : Game_id.t
+          ; round_params : Round_params.t
+          }
+      | Next_round of { game_id : Game_id.t }
+      | Advance_results_presentation of
+          { game_id : Game_id.t
+          ; direction : [ `Forward | `Back ]
+          }
+      | Set_word_status of
+          { game_id : Game_id.t
+          ; player : Player_id.t
+          ; category : Category_id.t
+          ; status : Word_status.t
+          }
     [@@deriving sexp, bin_io, compare]
 
     type response = unit Or_error.t [@@deriving sexp, bin_io, compare]
 
     let rpc =
       Rpc.Rpc.create
-        ~name:"set-word-status"
+        ~name:"control-game"
         ~version:1
         ~bin_query:[%bin_type_class: query]
         ~bin_response:[%bin_type_class: response]
