@@ -12,19 +12,4 @@ open Import
 
 type t =
   | Non_owner
-  | Owner of
-      { start_round : Round_params.t -> unit Bonsai.Effect.t
-            (** Once the game details have been chosen on the pre-round page, this
-                starts the round. *)
-      ; advance_results_presentation : [ `Forward | `Back ] -> unit Bonsai.Effect.t
-      ; next_round : unit Bonsai.Effect.t
-            (** Once the results have been fully presented, this moves the game state
-                back to the pre-round page. *)
-      ; set_word_status :
-          Word_status.t
-          -> player:Player_id.t
-          -> category:Category_id.t
-          -> unit Bonsai.Effect.t
-            (** Used during the results presentation to either allow or disallow
-                a given submission. *)
-      }
+  | Owner of { control_game : Rpc_protocol.Control_game.action -> unit Bonsai.Effect.t }

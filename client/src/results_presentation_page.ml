@@ -37,11 +37,11 @@ let view
                    ]))
       ; (match player_kind with
         | Non_owner -> Node.none
-        | Owner { next_round; _ } ->
+        | Owner { control_game } ->
           Node.input
             [ Attr.type_ "submit"
             ; Attr.value "Next round"
-            ; Attr.on_click (fun _ev -> Bonsai.Effect.inject_ignoring_response next_round)
+            ; Attr.on_click (fun _ev -> control_game Next_round |> Bonsai.Effect.inject_ignoring_response)
             ]
             [])
       ]
@@ -83,7 +83,7 @@ let view
                    let set_word_status_cell =
                      match player_kind with
                      | Non_owner -> Node.none
-                     | Owner { set_word_status; _ } ->
+                     | Owner { control_game } ->
                        (match word with
                        | None -> Node.td [] []
                        | Some _ ->
@@ -98,11 +98,13 @@ let view
                                [ Attr.href "#"
                                ; Attr.on_click (fun _ev ->
                                      Event.Many
-                                       [ Bonsai.Effect.inject_ignoring_response
-                                           (set_word_status
-                                              set_to_status
-                                              ~player
-                                              ~category)
+                                       [
+                                         control_game
+                                           (Set_word_status
+                                            { player; category; status = set_to_status }
+                                           )
+                                       |> 
+                                         Bonsai.Effect.inject_ignoring_response
                                        ; Event.Prevent_default
                                        ])
                                ]
@@ -124,12 +126,12 @@ let view
      ::
      (match player_kind with
      | Non_owner -> []
-     | Owner { advance_results_presentation; _ } ->
+     | Owner { control_game } ->
        [ Node.input
            [ Attr.type_ "submit"
            ; Attr.value "Next category"
            ; Attr.on_click (fun _ev ->
-                 advance_results_presentation `Forward
+                 control_game (Advance_results_presentation `Forward)
                  |> Bonsai.Effect.inject_ignoring_response)
            ]
            []
@@ -137,7 +139,7 @@ let view
            [ Attr.type_ "submit"
            ; Attr.value "Previous category"
            ; Attr.on_click (fun _ev ->
-                 advance_results_presentation `Back
+                 control_game (Advance_results_presentation `Back)
                  |> Bonsai.Effect.inject_ignoring_response)
            ]
            []

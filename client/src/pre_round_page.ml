@@ -114,7 +114,7 @@ let view
     match player_kind with
     | Non_owner ->
       [ Node.p [] [ Node.text "Waiting for the owner to start the game..." ] ]
-    | Owner { start_round; _ } ->
+    | Owner { control_game } ->
       [ Node.h3 [] [ Node.text "Letter" ]
       ; Node.div
           []
@@ -170,7 +170,7 @@ let view
           [ Attr.type_ "submit"
           ; Attr.value "Start game"
           ; Attr.on_click (fun _ev ->
-                start_round (Model.round_params model ~id:game_id)
+                control_game (Start_round { round_params = (Model.round_params model ~id:game_id) })
                 |> Bonsai.Effect.inject_ignoring_response)
           ]
           []
