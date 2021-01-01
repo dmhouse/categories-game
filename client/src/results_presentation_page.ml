@@ -41,7 +41,8 @@ let view
           Node.input
             [ Attr.type_ "submit"
             ; Attr.value "Next round"
-            ; Attr.on_click (fun _ev -> control_game Next_round |> Bonsai.Effect.inject_ignoring_response)
+            ; Attr.on_click (fun _ev ->
+                  control_game Next_round |> Bonsai.Effect.inject_ignoring_response)
             ]
             [])
       ]
@@ -98,13 +99,10 @@ let view
                                [ Attr.href "#"
                                ; Attr.on_click (fun _ev ->
                                      Event.Many
-                                       [
-                                         control_game
+                                       [ control_game
                                            (Set_word_status
-                                            { player; category; status = set_to_status }
-                                           )
-                                       |> 
-                                         Bonsai.Effect.inject_ignoring_response
+                                              { player; category; status = set_to_status })
+                                         |> Bonsai.Effect.inject_ignoring_response
                                        ; Event.Prevent_default
                                        ])
                                ]

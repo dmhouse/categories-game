@@ -170,7 +170,8 @@ let view
           [ Attr.type_ "submit"
           ; Attr.value "Start game"
           ; Attr.on_click (fun _ev ->
-                control_game (Start_round { round_params = (Model.round_params model ~id:game_id) })
+                control_game
+                  (Start_round { round_params = Model.round_params model ~id:game_id })
                 |> Bonsai.Effect.inject_ignoring_response)
           ]
           []
