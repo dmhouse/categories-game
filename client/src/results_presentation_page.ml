@@ -2,7 +2,6 @@ open! Core_kernel
 open Import
 
 let view
-    ~player_id:_
     ~(player_kind : Player_kind.t)
     ~presentation_stage
     ~(scores : Round_results.t)
@@ -145,14 +144,13 @@ let view
     @ results)
 ;;
 
-let bonsai ~scores ~presentation_stage ~player_kind ~player_id ~running_totals =
+let bonsai ~scores ~presentation_stage ~player_kind ~running_totals =
   (* Currently this is a pure function, but we wrap it up inside a computation
      to make it easier to add state later should we desire. *)
   Bonsai.read
     (let%map presentation_stage = presentation_stage
      and scores = scores
      and player_kind = player_kind
-     and player_id = player_id
      and running_totals = running_totals in
-     view ~presentation_stage ~scores ~player_kind ~player_id ~running_totals)
+     view ~presentation_stage ~scores ~player_kind ~running_totals)
 ;;

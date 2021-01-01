@@ -3,18 +3,18 @@ open Import
 
 module Model = struct
   type t =
-    { player_id : Player_id.t option
+    { player : Player_id.t option
     ; password : string option
     ; game_id : Game_id.t option
     }
   [@@deriving sexp, compare, equal]
 
-  let initial = { player_id = None; password = None; game_id = None }
+  let initial = { player = None; password = None; game_id = None }
 end
 
 module Action = struct
   type t =
-    | Set_player_id of string
+    | Set_player of string
     | Set_password of string
     | Set_game_id of string
   [@@deriving sexp]
@@ -22,9 +22,9 @@ end
 
 let apply_action ~inject:_ ~schedule_event:_ (model : Model.t) (action : Action.t) =
   match action with
-  | Set_player_id player ->
+  | Set_player player ->
     { model with
-      player_id =
+      player =
         (if String.is_empty player then None else Some (Player_id.of_string player))
     }
   | Set_password pw ->
@@ -44,10 +44,10 @@ let view (model : Model.t) ~inject ~log_in =
         [ Attr.type_ "text"
         ; Attr.placeholder "Your name"
         ; Attr.value
-            (match model.player_id with
+            (match model.player with
             | None -> ""
-            | Some player_id -> Player_id.to_string player_id)
-        ; Attr.on_input (fun _ev str -> inject (Action.Set_player_id str))
+            | Some player -> Player_id.to_string player)
+        ; Attr.on_input (fun _ev str -> inject (Action.Set_player str))
         ]
         []
     ; Node.input
@@ -74,10 +74,10 @@ let view (model : Model.t) ~inject ~log_in =
         ([ Attr.type_ "submit"; Attr.value "Go" ]
         @
         match
-          let%map.Option player_id = model.player_id
+          let%map.Option player = model.player
           and password = model.password
           and game_id = model.game_id in
-          { Rpc_protocol.Log_in.player_id; password; game_id }
+          { Rpc_protocol.Log_in.player; password; game_id }
         with
         | None -> [ Attr.disabled ]
         | Some query ->
