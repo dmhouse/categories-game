@@ -1,0 +1,5 @@
+(library
+  (name categories_gui)
+  (libraries core_kernel bonsai bonsai.web virtual_dom categories_common)
+  (preprocess (pps ppx_jane ppx_inline_test ppx_expect ppx_pattern_bind js_of_ocaml-ppx))
+  )
