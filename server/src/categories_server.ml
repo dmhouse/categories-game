@@ -5,31 +5,59 @@ module Static_resources = struct
   type t =
     { js : Filename.t
     ; css : Filename.t
-    ; html : Filename.t
     }
+
+  let js_filename = "categories.bc.js"
+  let css_filename = "style.css"
 
   let param =
     let%map_open.Command js =
       flag "js" (required Filename.arg_type) ~doc:" path to javascript"
-    and css = flag "css" (required Filename.arg_type) ~doc:" path to css"
-    and html = flag "html" (required Filename.arg_type) ~doc:" path to html" in
-    { js; css; html }
+    and css = flag "css" (required Filename.arg_type) ~doc:" path to css" in
+    { js; css }
   ;;
 
-  let handler t ~url_root =
+  let html ~path_root =
+    sprintf
+      {|
+       <!DOCTYPE html>
+       <html>
+          <head>
+             <meta charset="UTF-8">
+             <title>Scattegories</title>
+             <script defer src="%s"></script>
+             <link rel="stylesheet" href="%s" type="text/css">
+             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body>
+            <div id="app">Loading...</div>
+          </body>
+       </html>
+       |}
+      (path_root ^/ js_filename)
+      (path_root ^/ css_filename)
+  ;;
+
+  let handler t ~path_root =
     Staged.stage (fun ~body:_ _sock (request : Cohttp.Request.t) ->
         let normalised_url =
           request.resource
-          |> String.chop_prefix ~prefix:(Uri.to_string url_root)
+          |> String.chop_prefix ~prefix:path_root
           |> Option.map ~f:(String.lstrip ~drop:(fun c -> Char.( = ) c '/'))
         in
+        let respond_404 () =
+          Cohttp_async.Server.respond_string "Not found" ~status:`Not_found
+        in
         match normalised_url with
-        | Some "categories.bc.js" -> Cohttp_async.Server.respond_with_file t.js
-        | Some "style.css" -> Cohttp_async.Server.respond_with_file t.css
-        | Some ("" | "index.html") -> Cohttp_async.Server.respond_with_file t.html
-        | Some _ | None ->
-          printf "404: %s\n" request.resource;
-          Cohttp_async.Server.respond_string "Not found" ~status:`Not_found)
+        | None -> respond_404 ()
+        | Some resource ->
+          if String.( = ) resource js_filename
+          then Cohttp_async.Server.respond_with_file t.js
+          else if String.( = ) resource css_filename
+          then Cohttp_async.Server.respond_with_file t.css
+          else if String.( = ) resource "" || String.( = ) resource "index.html"
+          then Cohttp_async.Server.respond_string (html ~path_root)
+          else respond_404 ())
   ;;
 end
 
@@ -70,14 +98,36 @@ module Ssl_config = struct
   ;;
 end
 
-let go' ~static_resources ~ssl_config ~port ~url_root =
+let go' ~static_resources ~ssl_config ~port ~root_uri =
   let state =
     Server_state.create (Random.State.make_self_init ()) (Time_source.wall_clock ())
+  in
+  let path_root =
+    match root_uri with
+    | None -> "/"
+    |  Some uri -> Uri.path uri 
+  in
+  let should_process_request _inet header ~is_websocket_request =
+    match is_websocket_request with
+    | false -> Ok ()
+    | true ->
+       let origins =
+         match root_uri with
+         | None -> []
+         | Some uri ->
+            [ Uri.make ?scheme:(Uri.scheme uri) ?host:(Uri.host uri) ?port:(Uri.port uri) ()
+              |> Uri.to_string
+            ]
+       in
+       Cohttp_async_websocket.Header.origin_matches_host_or_is_one_of header
+         ~origins
+
   in
   let handler =
     Cohttp_async_websocket.Server.create
       ~opcode:`Binary
-      ~non_ws_request:(Static_resources.handler static_resources ~url_root |> unstage)
+      ~non_ws_request:(Static_resources.handler static_resources ~path_root |> unstage)
+      ~should_process_request
       (fun ~inet:_ ~subprotocol:_ _request ->
         Cohttp_async_websocket.Server.On_connection.create (fun reader writer ->
             let open Async_rpc_kernel in
@@ -95,10 +145,18 @@ let go' ~static_resources ~ssl_config ~port ~url_root =
   in
   let%bind _server =
     Cohttp_async.Server.create_expert
-      ~on_handler_error:`Ignore
+      ~on_handler_error:
+        (`Call
+          (fun addr exn ->
+            print_s
+              [%message "Error in TCP handler" (addr : Socket.Address.Inet.t) (exn : exn)]))
       ~mode:(Ssl_config.conduit_mode ssl_config)
       (Tcp.Where_to_listen.of_port port)
-      handler
+      (fun ~body sock request ->
+        print_s
+          [%message
+            "Serving URL" (request.meth : Cohttp.Code.meth) (request.resource : string)];
+        handler ~body sock request)
   in
   Deferred.never ()
 ;;
@@ -110,12 +168,10 @@ let go () =
      and ssl_config = Ssl_config.param
      and port =
        flag "port" (required int) ~doc:" listen for http(s) connections on this port"
-     and url_root =
-       flag
-         "url-root"
-         (optional_with_default (Uri.of_string "/") (Arg_type.create Uri.of_string))
+     and root_uri =
+       flag "root-url" (optional  (Arg_type.create Uri.of_string))
          ~doc:" root URL for the server"
      in
-     fun () -> go' ~static_resources ~ssl_config ~port ~url_root)
+     fun () -> go' ~static_resources ~ssl_config ~port ~root_uri)
   |> Command.run
 ;;

@@ -110,7 +110,23 @@ let go () =
   let open Async_kernel in
   Async_js.init ();
   don't_wait_for
-  @@ let%bind conn = Async_js.Rpc.Connection.client_exn () in
+  @@
+    let uri =
+      let open Js_of_ocaml in
+      let scheme = if String.equal Url.Current.protocol "https:" then "wss" else "ws" in
+      let port =
+        match Url.Current.port with
+        | Some port -> port
+        | None ->
+           if String.equal Url.Current.protocol "https:"
+           then Url.default_https_port
+           else Url.default_http_port
+      in
+      let host = Url.Current.host in
+      let path = Url.Current.path_string in
+      Uri.make ~scheme ~host ~port ~path ()
+    in
+    let%bind conn = Async_js.Rpc.Connection.client_exn ~uri () in
      let rpcs =
        { Rpcs.log_in =
            Bonsai_web.Effect.of_deferred_fun (fun query ->
