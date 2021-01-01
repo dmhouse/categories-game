@@ -2,31 +2,12 @@ open! Core_kernel
 open Import
 
 module Model = struct
-  type t = { responses : Word.t option Category_id.Map.t }
-  [@@deriving sexp, compare, equal]
+  type t = Word.t option Category_id.Map.t [@@deriving sexp, compare, equal]
 
-  let initial = { responses = Category_id.Map.empty }
+  let initial = Category_id.Map.empty
 end
 
-module Action = struct
-  type t =
-    | Set_response of
-        { category : Category_id.t
-        ; response : string
-        }
-  [@@deriving sexp, compare, equal]
-end
-
-let apply_action ~inject:_ ~schedule_event:_ (model : Model.t) (action : Action.t) =
-  match action with
-  | Set_response { category; response } ->
-    let word =
-      if String.is_empty response then None else Some (Word.of_string response)
-    in
-    { Model.responses = Map.set model.responses ~key:category ~data:word }
-;;
-
-let view (model : Model.t) ~inject ~(round_params : Round_params.t) ~time_remaining =
+let view (model : Model.t) ~set_word ~(round_params : Round_params.t) ~time_remaining =
   let open Vdom in
   Node.div
     []
@@ -47,7 +28,7 @@ let view (model : Model.t) ~inject ~(round_params : Round_params.t) ~time_remain
     ; Node.table
         [ Attr.id "responses" ]
         (List.map (Set.to_list round_params.categories) ~f:(fun category ->
-             let response = Map.find model.responses category |> Option.join in
+             let response = Map.find model category |> Option.join in
              Node.tr
                []
                [ Node.th [] [ Node.text (Category_id.to_string category) ]
@@ -59,8 +40,7 @@ let view (model : Model.t) ~inject ~(round_params : Round_params.t) ~time_remain
                            | None -> ""
                            | Some word -> Word.to_string word)
                        ; Attr.type_ "text"
-                       ; Attr.on_input (fun _ev response ->
-                             inject (Action.Set_response { category; response }))
+                       ; Attr.on_input (fun _ev word -> set_word word ~category)
                        ]
                        []
                    ]
@@ -69,13 +49,15 @@ let view (model : Model.t) ~inject ~(round_params : Round_params.t) ~time_remain
 ;;
 
 let bonsai ~round_params ~clock ~submit_words ~time_remaining =
-  let%sub model, inject =
-    Bonsai.state_machine0
-      [%here]
-      (module Model)
-      (module Action)
-      ~default_model:Model.initial
-      ~apply_action
+  let%sub model, set_model =
+    Bonsai.state [%here] (module Model) ~default_model:Model.initial
+  in
+  let%sub () =
+    Bonsai.Edge.lifecycle
+      ~on_activate:
+        (let%map set_model = set_model in
+         set_model Model.initial)
+      ()
   in
   let%sub () =
     Clock.every
@@ -84,13 +66,18 @@ let bonsai ~round_params ~clock ~submit_words ~time_remaining =
       ~f:
         (let%map model = model
          and submit_words = submit_words in
-         fun _now ->
-           Bonsai.Effect.inject_ignoring_response (submit_words model.Model.responses))
+         fun _now -> Bonsai.Effect.inject_ignoring_response (submit_words model))
   in
   Bonsai.read
     (let%map model = model
-     and inject = inject
      and round_params = round_params
-     and time_remaining = time_remaining in
-     view model ~inject ~round_params ~time_remaining)
+     and time_remaining = time_remaining
+     and set_word =
+       let%map set_model = set_model
+       and model = model in
+       fun word ~category ->
+         let word = if String.is_empty word then None else Some (Word.of_string word) in
+         set_model (Map.set model ~key:category ~data:word)
+     in
+     view model ~set_word ~round_params ~time_remaining)
 ;;

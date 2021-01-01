@@ -1,5 +1,5 @@
 open! Core_kernel
-open Scattegories_common
+open Import
 
 let all =
   {|
