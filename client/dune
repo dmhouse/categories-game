@@ -1,0 +1,7 @@
+(executable 
+  (name scattegories)
+  (libraries core_kernel bonsai bonsai.web virtual_dom scattegories_common)
+  ;;(inline_tests)
+  (preprocess (pps ppx_jane ppx_inline_test ppx_expect ppx_pattern_bind))
+  (modes js)
+  )

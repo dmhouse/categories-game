@@ -1,0 +1,5 @@
+(executable
+  (name server)
+  (libraries core async cohttp_async_websocket scattegories_common)
+  (preprocess (pps ppx_jane))
+  )

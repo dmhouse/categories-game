@@ -1,0 +1,53 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    font-family: Arial, sans;
+    font-size: 15px
+}
+
+div#container {
+    background-color: white;
+    border: 1px solid #ccc;
+    margin: 0.5em;
+    padding: 0.5em;
+    min-height: calc(100vh - 2em - 2px)
+}
+
+input[type=submit], input[type=text] {
+    display: block;
+    margin: .5em 0;
+    height: 2em;
+    width: 20em
+}
+
+table#responses td {
+    padding: 0;
+    margin: 1px
+}
+
+table#responses th {
+    max-width: 30vw;
+    padding: 0 1em
+}
+
+table#responses input {
+    width: 60vw;
+    font-size: 1.5em;
+    height: 2em
+}
+
+textarea {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+h2 {
+    font-family: Consolas, monospace;
+    color: #4287f5
+}
+
+h3 {
+    font-family: Consolas, monospace;
+    color: #a30d0d
+}

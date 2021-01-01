@@ -1,0 +1,5 @@
+(library
+ (name scattegories_common)
+ (libraries core_kernel async_kernel async_js)
+ (preprocess (pps ppx_jane))
+ )
