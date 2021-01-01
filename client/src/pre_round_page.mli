@@ -8,6 +8,5 @@ val bonsai
   :  Random.State.t
   -> player_kind:Player_kind.t Bonsai.Value.t
   -> players:Player_id.Set.t Bonsai.Value.t
-  -> game_id:Game_id.t Bonsai.Value.t
   -> categories_used_so_far:Category_id.Set.t Bonsai.Value.t
   -> Vdom.Node.t Bonsai.Computation.t

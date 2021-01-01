@@ -29,9 +29,9 @@ module Model = struct
     }
   [@@deriving sexp, compare, equal]
 
-  let round_params t ~id =
-    { Round_params.id
-    ; letter = t.letter
+  let round_params t =
+    { Round_params.
+     letter = t.letter
     ; length = t.game_length
     ; categories = Category_id.Set.of_list t.categories
     }
@@ -88,7 +88,6 @@ let view
     (model : Model.t)
     ~(player_kind : Player_kind.t)
     ~players
-    ~game_id
     ~(inject : Action.t -> _)
   =
   let open Vdom in
@@ -171,14 +170,14 @@ let view
           ; Attr.value "Start game"
           ; Attr.on_click (fun _ev ->
                 control_game
-                  (Start_round { round_params = Model.round_params model ~id:game_id })
+                  (Start_round { round_params = Model.round_params model })
                 |> Bonsai.Effect.inject_ignoring_response)
           ]
           []
       ])
 ;;
 
-let bonsai rstate ~player_kind ~players ~game_id ~categories_used_so_far =
+let bonsai rstate ~player_kind ~players ~categories_used_so_far =
   let%sub model, inject =
     Bonsai.state_machine1
       [%here]
@@ -200,6 +199,6 @@ let bonsai rstate ~player_kind ~players ~game_id ~categories_used_so_far =
      and players = players
      and inject = inject
      and model = model
-     and game_id = game_id in
-     view model ~player_kind ~players ~game_id ~inject)
+     in
+     view model ~player_kind ~players ~inject)
 ;;
