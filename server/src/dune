@@ -1,5 +1,5 @@
-(executable
-  (name server)
+(library
+  (name categories_server)
   (libraries core async cohttp_async_websocket categories_common list_zipper)
   (preprocess (pps ppx_jane))
   )

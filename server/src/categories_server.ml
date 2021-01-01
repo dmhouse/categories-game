@@ -27,7 +27,7 @@ let static_files_handler ~body:_ _sock (request : Cohttp.Request.t) ~(files : Fi
     Cohttp_async.Server.respond_string "Not found" ~status:`Not_found
 ;;
 
-let go ~files ~port =
+let go' ~files ~port =
   let state =
     Server_state.create (Random.State.make_self_init ()) (Time_source.wall_clock ())
   in
@@ -59,7 +59,7 @@ let go ~files ~port =
   Deferred.never ()
 ;;
 
-let () =
+let go () =
   Command.async
     ~summary:"start server"
     (let%map_open.Command files = Files.param
