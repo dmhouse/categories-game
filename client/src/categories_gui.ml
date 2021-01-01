@@ -55,7 +55,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
           clock
           (Time_ns.Span.of_ms 100.)
           ~f:
-            (let%map  player = player
+            (let%map player = player
              and set_model = set_model
              and am_owner = am_owner in
              fun _now ->
@@ -66,11 +66,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
                         Ui_event.Ignore
                       | Ok game_status ->
                         set_model
-                          (Logged_in
-                             { player
-                             ; game_status = Some game_status
-                             ; am_owner
-                             })))
+                          (Logged_in { player; game_status = Some game_status; am_owner })))
       in
       let player_kind =
         if%map am_owner
@@ -87,20 +83,13 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
       (match%sub game_status with
       | None -> Bonsai.const (Vdom.Node.text "Loading...")
       | Some (Pre_round { players; categories_used_so_far }) ->
-        Pre_round_page.bonsai
-          rstate
-          ~players
-          ~player_kind
-          ~categories_used_so_far
+        Pre_round_page.bonsai rstate ~players ~player_kind ~categories_used_so_far
       | Some (In_play { time_remaining; round_params }) ->
         let submit_words =
-          Bonsai.Value.return
-            (
-              fun words ->
+          Bonsai.Value.return (fun words ->
               match%map.Bonsai.Effect rpcs.submit_words words with
               | Ok () -> ()
-              | Error e -> on_error (Error.tag e ~tag:"Error submitting words")
-            )
+              | Error e -> on_error (Error.tag e ~tag:"Error submitting words"))
         in
         Submit_words_page.bonsai ~round_params ~clock ~submit_words ~time_remaining
       | Some

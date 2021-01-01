@@ -30,8 +30,7 @@ module Model = struct
   [@@deriving sexp, compare, equal]
 
   let round_params t =
-    { Round_params.
-     letter = t.letter
+    { Round_params.letter = t.letter
     ; length = t.game_length
     ; categories = Category_id.Set.of_list t.categories
     }
@@ -169,8 +168,7 @@ let view
           [ Attr.type_ "submit"
           ; Attr.value "Start game"
           ; Attr.on_click (fun _ev ->
-                control_game
-                  (Start_round { round_params = Model.round_params model })
+                control_game (Start_round { round_params = Model.round_params model })
                 |> Bonsai.Effect.inject_ignoring_response)
           ]
           []
@@ -198,7 +196,6 @@ let bonsai rstate ~player_kind ~players ~categories_used_so_far =
     (let%map player_kind = player_kind
      and players = players
      and inject = inject
-     and model = model
-     in
+     and model = model in
      view model ~player_kind ~players ~inject)
 ;;
