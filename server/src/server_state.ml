@@ -87,13 +87,18 @@ let control_game t (conn_state : Conn_state.t) (action : Rpc_protocol.Control_ga
                    Game_state.end_round game_state)))
 ;;
 
+let handle_rpc (type q r) t (rpc : (q, r) Rpc_protocol.Which.t) conn_state (query : q) : r =
+  match rpc with
+  | Log_in -> log_in t conn_state query
+  | Submit_words -> submit_words t conn_state query
+  | Get_game_status -> get_game_status t conn_state query
+  | Control_game -> control_game t conn_state query
+;;
+
 let implementations t =
   Rpc.Implementations.create_exn
     ~implementations:
-      [ Rpc.Rpc.implement' Rpc_protocol.Log_in.rpc (log_in t)
-      ; Rpc.Rpc.implement' Rpc_protocol.Submit_words.rpc (submit_words t)
-      ; Rpc.Rpc.implement' Rpc_protocol.Get_game_status.rpc (get_game_status t)
-      ; Rpc.Rpc.implement' Rpc_protocol.Control_game.rpc (control_game t)
-      ]
+      (List.map Rpc_protocol.Which.all ~f:(fun (Pack rpc) ->
+           Rpc.Rpc.implement' (Rpc_protocol.Which.rpc rpc) (handle_rpc t rpc)))
     ~on_unknown_rpc:`Raise
 ;;

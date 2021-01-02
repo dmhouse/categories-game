@@ -93,6 +93,7 @@ module Quickcheck = struct
       List_zipper.For_testing.create_with_focus ~prev_rev ~focus ~rest
     in
     weighted_union [ 0.3, no_focus; 0.7, with_focus ]
+  ;;
 
   let quickcheck_shrinker = Base_quickcheck.Shrinker.atomic
 end

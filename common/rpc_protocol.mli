@@ -62,3 +62,17 @@ module Get_game_status : sig
 
   val rpc : (query, response) Rpc.Rpc.t
 end
+
+module Which : sig
+  type ('query, 'response) t =
+    | Log_in : (Log_in.query, Log_in.response) t
+    | Submit_words : (Submit_words.query, Submit_words.response) t
+    | Control_game : (Control_game.query, Control_game.response) t
+    | Get_game_status : (Get_game_status.query, Get_game_status.response) t
+  [@@deriving enumerate]
+
+  type packed = Pack : ('q, 'r) t -> packed
+
+  val all : packed list
+  val rpc : ('q, 'r) t -> ('q, 'r) Rpc.Rpc.t
+end

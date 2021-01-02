@@ -15,18 +15,9 @@ module Model = struct
   [@@deriving sexp, compare, equal]
 end
 
-module Rpcs = struct
-  open Rpc_protocol
+type call_rpc = { f : 'q 'r. ('q, 'r) Rpc_protocol.Which.t -> 'q -> 'r Bonsai.Effect.t }
 
-  type t =
-    { log_in : Log_in.query -> Log_in.response Bonsai.Effect.t
-    ; control_game : Control_game.query -> Control_game.response Bonsai.Effect.t
-    ; get_game_status : Get_game_status.query -> Get_game_status.response Bonsai.Effect.t
-    ; submit_words : Submit_words.query -> Submit_words.response Bonsai.Effect.t
-    }
-end
-
-let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
+let bonsai rstate clock ~(call_rpc : call_rpc) ~on_error =
   let%sub model, set_model =
     Bonsai.state [%here] (module Model) ~default_model:Awaiting_login
   in
@@ -37,7 +28,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
         let%map set_model = set_model in
         fun query ->
           let open Bonsai.Effect.Let_syntax in
-          match%bind rpcs.log_in query with
+          match%bind call_rpc.f Log_in query with
           | Error _ -> return ()
           | Ok { Rpc_protocol.Log_in.you_are_the_owner } ->
             set_model
@@ -59,7 +50,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
              and set_model = set_model
              and am_owner = am_owner in
              fun _now ->
-               rpcs.get_game_status ()
+               call_rpc.f Get_game_status ()
                |> Bonsai.Effect.inject ~on_response:(function
                       | Error e ->
                         on_error (Error.tag e ~tag:"Error getting game status");
@@ -74,7 +65,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
           Player_kind.Owner
             { control_game =
                 (fun action ->
-                  match%map.Bonsai.Effect rpcs.control_game action with
+                  match%map.Bonsai.Effect call_rpc.f Control_game action with
                   | Ok () -> ()
                   | Error e -> on_error (Error.tag e ~tag:"Error controlling game"))
             }
@@ -87,7 +78,7 @@ let bonsai rstate (rpcs : Rpcs.t) clock ~on_error =
       | Some (In_play { time_remaining; round_params }) ->
         let submit_words =
           Bonsai.Value.return (fun words ->
-              match%map.Bonsai.Effect rpcs.submit_words words with
+              match%map.Bonsai.Effect call_rpc.f Submit_words words with
               | Ok () -> ()
               | Error e -> on_error (Error.tag e ~tag:"Error submitting words"))
         in
@@ -127,24 +118,15 @@ let go () =
     Uri.make ~scheme ~host ~port ~path ()
   in
   let%bind conn = Async_js.Rpc.Connection.client_exn ~uri () in
-  let rpcs =
-    { Rpcs.log_in =
-        Bonsai_web.Effect.of_deferred_fun (fun query ->
-            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Log_in.rpc conn query)
-        |> unstage
-    ; control_game =
-        Bonsai_web.Effect.of_deferred_fun (fun query ->
-            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Control_game.rpc conn query)
-        |> unstage
-    ; submit_words =
-        Bonsai_web.Effect.of_deferred_fun (fun query ->
-            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Submit_words.rpc conn query)
-        |> unstage
-    ; get_game_status =
-        Bonsai_web.Effect.of_deferred_fun (fun query ->
-            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Get_game_status.rpc conn query)
-        |> unstage
-    }
+  let call_rpc (type q r) (rpc : (q, r) Rpc_protocol.Which.t) (query : q)
+      : r Bonsai.Effect.t
+    =
+    let f =
+      Bonsai_web.Effect.of_deferred_fun (fun query ->
+          Async_js.Rpc.Rpc.dispatch_exn (Rpc_protocol.Which.rpc rpc) conn query)
+      |> unstage
+    in
+    f query
   in
   let clock = Clock.create ~now:(Time_ns.now ()) in
   every (Time_ns.Span.of_sec 0.1) (fun () -> Clock.advance clock ~now:(Time_ns.now ()));
@@ -152,8 +134,11 @@ let go () =
     Bonsai_web.Start.start
       Bonsai_web.Start.Result_spec.just_the_view
       ~bind_to_element_with_id:"app"
-      (bonsai (Random.State.make_self_init ()) rpcs clock ~on_error:(fun e ->
-           Js_of_ocaml.Firebug.console##log (Error.to_string_hum e)))
+      (bonsai
+         (Random.State.make_self_init ())
+         clock
+         ~call_rpc:{ f = call_rpc }
+         ~on_error:(fun e -> Js_of_ocaml.Firebug.console##log (Error.to_string_hum e)))
   in
   ignore handle;
   Deferred.unit
