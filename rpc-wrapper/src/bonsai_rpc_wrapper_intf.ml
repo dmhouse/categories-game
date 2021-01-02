@@ -94,5 +94,7 @@ module type S = sig
 end
 
 module type Bonsai_rpc_wrapper = sig
+  module type Rpc_repr = Rpc_repr
+  module type S = S
   module Make (Rpc_repr : Rpc_repr) : S with type ('q, 'r) repr := ('q, 'r) Rpc_repr.t
 end

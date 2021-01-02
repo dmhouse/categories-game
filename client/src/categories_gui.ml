@@ -26,7 +26,7 @@ let bonsai rstate clock ~(call_rpc : Rpc_protocol.Which.Call_rpc.t) ~on_error =
         let%map set_model = set_model in
         fun query ->
           let open Bonsai.Effect.Let_syntax in
-          match%bind call_rpc.f Log_in query with
+          match%bind call_rpc.f Log_in query >>| Or_error.join with
           | Error _ -> return ()
           | Ok { Rpc_protocol.Log_in.you_are_the_owner } ->
             set_model
@@ -49,6 +49,7 @@ let bonsai rstate clock ~(call_rpc : Rpc_protocol.Which.Call_rpc.t) ~on_error =
              and am_owner = am_owner in
              fun _now ->
                call_rpc.f Get_game_status ()
+               |> Bonsai.Effect.map ~f:Or_error.join
                |> Bonsai.Effect.inject ~on_response:(function
                       | Error e ->
                         on_error (Error.tag e ~tag:"Error getting game status");
@@ -63,7 +64,8 @@ let bonsai rstate clock ~(call_rpc : Rpc_protocol.Which.Call_rpc.t) ~on_error =
           Player_kind.Owner
             { control_game =
                 (fun action ->
-                  match%map.Bonsai.Effect call_rpc.f Control_game action with
+                  let open Bonsai.Effect.Let_syntax in
+match%map call_rpc.f Control_game action >>| Or_error.join with
                   | Ok () -> ()
                   | Error e -> on_error (Error.tag e ~tag:"Error controlling game"))
             }
@@ -76,7 +78,8 @@ let bonsai rstate clock ~(call_rpc : Rpc_protocol.Which.Call_rpc.t) ~on_error =
       | Some (In_play { time_remaining; round_params }) ->
         let submit_words =
           Bonsai.Value.return (fun words ->
-              match%map.Bonsai.Effect call_rpc.f Submit_words words with
+              let open Bonsai.Effect.Let_syntax in
+              match%map call_rpc.f Submit_words words >>| Or_error.join with
               | Ok () -> ()
               | Error e -> on_error (Error.tag e ~tag:"Error submitting words"))
         in
