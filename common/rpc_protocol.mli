@@ -71,8 +71,7 @@ module Which : sig
     | Get_game_status : (Get_game_status.query, Get_game_status.response) t
   [@@deriving sexp_of]
 
-  type packed = Pack : ('q, 'r) t -> packed [@@deriving sexp_of]
+  include Bonsai_rpc_wrapper.S with type ('q, 'r) repr := ('q, 'r) t
 
-  val all : packed list
-  val rpc : ('q, 'r) t -> ('q, 'r) Rpc.Rpc.t
+  val all : packed_repr list
 end

@@ -1,0 +1,5 @@
+(library
+  (name bonsai_rpc_wrapper)
+  (libraries core_kernel async_rpc_kernel bonsai bonsai.web)
+  (preprocess (pps ppx_jane))
+  )

@@ -15,9 +15,7 @@ module Model = struct
   [@@deriving sexp, compare, equal]
 end
 
-type call_rpc = { f : 'q 'r. ('q, 'r) Rpc_protocol.Which.t -> 'q -> 'r Bonsai.Effect.t }
-
-let bonsai rstate clock ~(call_rpc : call_rpc) ~on_error =
+let bonsai rstate clock ~(call_rpc : Rpc_protocol.Which.Call_rpc.t) ~on_error =
   let%sub model, set_model =
     Bonsai.state [%here] (module Model) ~default_model:Awaiting_login
   in
@@ -118,16 +116,6 @@ let go () =
     Uri.make ~scheme ~host ~port ~path ()
   in
   let%bind conn = Async_js.Rpc.Connection.client_exn ~uri () in
-  let call_rpc (type q r) (rpc : (q, r) Rpc_protocol.Which.t) (query : q)
-      : r Bonsai.Effect.t
-    =
-    let f =
-      Bonsai_web.Effect.of_deferred_fun (fun query ->
-          Async_js.Rpc.Rpc.dispatch_exn (Rpc_protocol.Which.rpc rpc) conn query)
-      |> unstage
-    in
-    f query
-  in
   let clock = Clock.create ~now:(Time_ns.now ()) in
   every (Time_ns.Span.of_sec 0.1) (fun () -> Clock.advance clock ~now:(Time_ns.now ()));
   let handle =
@@ -137,7 +125,7 @@ let go () =
       (bonsai
          (Random.State.make_self_init ())
          clock
-         ~call_rpc:{ f = call_rpc }
+         ~call_rpc:(Rpc_protocol.Which.call_by_dispatching conn)
          ~on_error:(fun e -> Js_of_ocaml.Firebug.console##log (Error.to_string_hum e)))
   in
   ignore handle;
@@ -145,8 +133,5 @@ let go () =
 ;;
 
 module For_testing = struct
-  type nonrec call_rpc = call_rpc =
-    { f : 'q 'r. ('q, 'r) Rpc_protocol.Which.t -> 'q -> 'r Bonsai.Effect.t }
-
   let bonsai = bonsai
 end

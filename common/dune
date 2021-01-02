@@ -1,5 +1,5 @@
 (library
  (name categories_common)
- (libraries core_kernel async_kernel async_js)
+ (libraries core_kernel async_kernel async_js bonsai_rpc_wrapper)
  (preprocess (pps ppx_jane))
  )

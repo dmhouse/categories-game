@@ -72,22 +72,25 @@ module Get_game_status = struct
 end
 
 module Which = struct
-  type ('query, 'response) t =
-    | Log_in : (Log_in.query, Log_in.response) t
-    | Submit_words : (Submit_words.query, Submit_words.response) t
-    | Control_game : (Control_game.query, Control_game.response) t
-    | Get_game_status : (Get_game_status.query, Get_game_status.response) t
-  [@@deriving sexp_of]
+  module T = struct
+    type ('query, 'response) t =
+      | Log_in : (Log_in.query, Log_in.response) t
+      | Submit_words : (Submit_words.query, Submit_words.response) t
+      | Control_game : (Control_game.query, Control_game.response) t
+      | Get_game_status : (Get_game_status.query, Get_game_status.response) t
+    [@@deriving sexp_of]
 
-  type packed = Pack : ('q, 'r) t -> packed [@@deriving sexp_of]
+    let rpc (type q r) (t : (q, r) t) : (q, r) Rpc.Rpc.t =
+      match t with
+      | Log_in -> Log_in.rpc
+      | Submit_words -> Submit_words.rpc
+      | Control_game -> Control_game.rpc
+      | Get_game_status -> Get_game_status.rpc
+    ;;
+  end
+
+  include T
+  include Bonsai_rpc_wrapper.Make (T)
 
   let all = [ Pack Log_in; Pack Submit_words; Pack Control_game; Pack Get_game_status ]
-
-  let rpc (type q r) (t : (q, r) t) : (q, r) Rpc.Rpc.t =
-    match t with
-    | Log_in -> Log_in.rpc
-    | Submit_words -> Submit_words.rpc
-    | Control_game -> Control_game.rpc
-    | Get_game_status -> Get_game_status.rpc
-  ;;
 end

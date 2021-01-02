@@ -14,5 +14,5 @@ val create : Random.State.t -> Time_source.t -> t
 val implementations : t -> Conn_state.t Rpc.Implementations.t
 
 module For_testing : sig
-  val handle_rpc : t -> ('q, 'r) Rpc_protocol.Which.t -> Conn_state.t -> 'q -> 'r
+  val handle_rpc : t -> Conn_state.t Rpc_protocol.Which.Handle_rpc.t
 end
