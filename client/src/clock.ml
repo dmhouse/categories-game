@@ -23,6 +23,8 @@ let every t span ~f =
     |> Bonsai.Incr.to_value
   in
   let callback =
-    let%map f = f in fun _time -> f () in
+    let%map f = f in
+    fun _time -> f ()
+  in
   Bonsai.Edge.on_change [%here] (module Time_ns_with_sexp_and_equal) value ~callback
 ;;

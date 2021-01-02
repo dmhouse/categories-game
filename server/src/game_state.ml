@@ -184,7 +184,7 @@ let status t =
   | Finished finished ->
     Results_presentation
       { scores = finished.scores
-      ; presentation_stage = List_zipper.focused_elt finished.presentation_stages
+      ; presentation_stage = List_zipper.focus finished.presentation_stages
       ; running_totals = running_totals t finished
       ; round_params = finished.round_params
       }

@@ -105,23 +105,21 @@ let go' ~static_resources ~ssl_config ~port ~root_uri =
   let path_root =
     match root_uri with
     | None -> "/"
-    |  Some uri -> Uri.path uri 
+    | Some uri -> Uri.path uri
   in
   let should_process_request _inet header ~is_websocket_request =
     match is_websocket_request with
     | false -> Ok ()
     | true ->
-       let origins =
-         match root_uri with
-         | None -> []
-         | Some uri ->
-            [ Uri.make ?scheme:(Uri.scheme uri) ?host:(Uri.host uri) ?port:(Uri.port uri) ()
-              |> Uri.to_string
-            ]
-       in
-       Cohttp_async_websocket.Header.origin_matches_host_or_is_one_of header
-         ~origins
-
+      let origins =
+        match root_uri with
+        | None -> []
+        | Some uri ->
+          [ Uri.make ?scheme:(Uri.scheme uri) ?host:(Uri.host uri) ?port:(Uri.port uri) ()
+            |> Uri.to_string
+          ]
+      in
+      Cohttp_async_websocket.Header.origin_matches_host_or_is_one_of header ~origins
   in
   let handler =
     Cohttp_async_websocket.Server.create
@@ -169,7 +167,9 @@ let go () =
      and port =
        flag "port" (required int) ~doc:" listen for http(s) connections on this port"
      and root_uri =
-       flag "root-url" (optional  (Arg_type.create Uri.of_string))
+       flag
+         "root-url"
+         (optional (Arg_type.create Uri.of_string))
          ~doc:" root URL for the server"
      in
      fun () -> go' ~static_resources ~ssl_config ~port ~root_uri)

@@ -111,50 +111,50 @@ let go () =
   Async_js.init ();
   don't_wait_for
   @@
-    let uri =
-      let open Js_of_ocaml in
-      let scheme = if String.equal Url.Current.protocol "https:" then "wss" else "ws" in
-      let port =
-        match Url.Current.port with
-        | Some port -> port
-        | None ->
-           if String.equal Url.Current.protocol "https:"
-           then Url.default_https_port
-           else Url.default_http_port
-      in
-      let host = Url.Current.host in
-      let path = Url.Current.path_string in
-      Uri.make ~scheme ~host ~port ~path ()
+  let uri =
+    let open Js_of_ocaml in
+    let scheme = if String.equal Url.Current.protocol "https:" then "wss" else "ws" in
+    let port =
+      match Url.Current.port with
+      | Some port -> port
+      | None ->
+        if String.equal Url.Current.protocol "https:"
+        then Url.default_https_port
+        else Url.default_http_port
     in
-    let%bind conn = Async_js.Rpc.Connection.client_exn ~uri () in
-     let rpcs =
-       { Rpcs.log_in =
-           Bonsai_web.Effect.of_deferred_fun (fun query ->
-               Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Log_in.rpc conn query)
-           |> unstage
-       ; control_game =
-           Bonsai_web.Effect.of_deferred_fun (fun query ->
-               Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Control_game.rpc conn query)
-           |> unstage
-       ; submit_words =
-           Bonsai_web.Effect.of_deferred_fun (fun query ->
-               Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Submit_words.rpc conn query)
-           |> unstage
-       ; get_game_status =
-           Bonsai_web.Effect.of_deferred_fun (fun query ->
-               Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Get_game_status.rpc conn query)
-           |> unstage
-       }
-     in
-     let clock = Clock.create ~now:(Time_ns.now ()) in
-     every (Time_ns.Span.of_sec 0.1) (fun () -> Clock.advance clock ~now:(Time_ns.now ()));
-     let handle =
-       Bonsai_web.Start.start
-         Bonsai_web.Start.Result_spec.just_the_view
-         ~bind_to_element_with_id:"app"
-         (bonsai (Random.State.make_self_init ()) rpcs clock ~on_error:(fun e ->
-              Js_of_ocaml.Firebug.console##log (Error.to_string_hum e)))
-     in
-     ignore handle;
-     Deferred.unit
+    let host = Url.Current.host in
+    let path = Url.Current.path_string in
+    Uri.make ~scheme ~host ~port ~path ()
+  in
+  let%bind conn = Async_js.Rpc.Connection.client_exn ~uri () in
+  let rpcs =
+    { Rpcs.log_in =
+        Bonsai_web.Effect.of_deferred_fun (fun query ->
+            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Log_in.rpc conn query)
+        |> unstage
+    ; control_game =
+        Bonsai_web.Effect.of_deferred_fun (fun query ->
+            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Control_game.rpc conn query)
+        |> unstage
+    ; submit_words =
+        Bonsai_web.Effect.of_deferred_fun (fun query ->
+            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Submit_words.rpc conn query)
+        |> unstage
+    ; get_game_status =
+        Bonsai_web.Effect.of_deferred_fun (fun query ->
+            Async_js.Rpc.Rpc.dispatch_exn Rpc_protocol.Get_game_status.rpc conn query)
+        |> unstage
+    }
+  in
+  let clock = Clock.create ~now:(Time_ns.now ()) in
+  every (Time_ns.Span.of_sec 0.1) (fun () -> Clock.advance clock ~now:(Time_ns.now ()));
+  let handle =
+    Bonsai_web.Start.start
+      Bonsai_web.Start.Result_spec.just_the_view
+      ~bind_to_element_with_id:"app"
+      (bonsai (Random.State.make_self_init ()) rpcs clock ~on_error:(fun e ->
+           Js_of_ocaml.Firebug.console##log (Error.to_string_hum e)))
+  in
+  ignore handle;
+  Deferred.unit
 ;;
