@@ -1,0 +1,9 @@
+;; TODO: currently bonsai_test / bonsai_web_test do not work outside of
+;; Jane Street's repo as they depend on a missing expect_test_patdiff. 
+
+;; (library
+;;   (name categories_test)
+;;   (libraries categories_gui categories_server bonsai_web_test)
+;;   (inline_tests)
+;;   (preprocess (pps ppx_jane))
+;;   )

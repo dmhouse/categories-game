@@ -87,7 +87,8 @@ let control_game t (conn_state : Conn_state.t) (action : Rpc_protocol.Control_ga
                    Game_state.end_round game_state)))
 ;;
 
-let handle_rpc (type q r) t (rpc : (q, r) Rpc_protocol.Which.t) conn_state (query : q) : r =
+let handle_rpc (type q r) t (rpc : (q, r) Rpc_protocol.Which.t) conn_state (query : q) : r
+  =
   match rpc with
   | Log_in -> log_in t conn_state query
   | Submit_words -> submit_words t conn_state query
@@ -102,3 +103,7 @@ let implementations t =
            Rpc.Rpc.implement' (Rpc_protocol.Which.rpc rpc) (handle_rpc t rpc)))
     ~on_unknown_rpc:`Raise
 ;;
+
+module For_testing = struct
+  let handle_rpc = handle_rpc
+end

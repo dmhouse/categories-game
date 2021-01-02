@@ -143,3 +143,10 @@ let go () =
   ignore handle;
   Deferred.unit
 ;;
+
+module For_testing = struct
+  type nonrec call_rpc = call_rpc =
+    { f : 'q 'r. ('q, 'r) Rpc_protocol.Which.t -> 'q -> 'r Bonsai.Effect.t }
+
+  let bonsai = bonsai
+end

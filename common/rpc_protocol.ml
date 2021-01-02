@@ -77,8 +77,9 @@ module Which = struct
     | Submit_words : (Submit_words.query, Submit_words.response) t
     | Control_game : (Control_game.query, Control_game.response) t
     | Get_game_status : (Get_game_status.query, Get_game_status.response) t
+  [@@deriving sexp_of]
 
-  type packed = Pack : ('q, 'r) t -> packed
+  type packed = Pack : ('q, 'r) t -> packed [@@deriving sexp_of]
 
   let all = [ Pack Log_in; Pack Submit_words; Pack Control_game; Pack Get_game_status ]
 
