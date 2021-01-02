@@ -47,3 +47,7 @@ let rev = function
   | No_focus { forward; backward } -> No_focus { forward = backward; backward = forward }
   | Focus { prev_rev; focus; rest } -> Focus { prev_rev = rest; focus; rest = prev_rev }
 ;;
+
+module For_testing = struct
+  let create_with_focus ~prev_rev ~focus ~rest = Focus { prev_rev; focus; rest }
+end

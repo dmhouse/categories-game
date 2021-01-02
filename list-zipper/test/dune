@@ -1,0 +1,6 @@
+(library
+ (name list_zipper_test)
+ (libraries list_zipper base_quickcheck)
+ (inline_tests)
+ (preprocess (pps ppx_jane))
+ )

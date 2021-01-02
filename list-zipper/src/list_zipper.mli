@@ -14,3 +14,7 @@ val focus : 'a t -> 'a option
 val next : 'a t -> 'a t
 val prev : 'a t -> 'a t
 val rev : 'a t -> 'a t
+
+module For_testing : sig
+  val create_with_focus : prev_rev:'a list -> focus:'a -> rest:'a list -> 'a t
+end
